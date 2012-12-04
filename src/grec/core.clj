@@ -1,17 +1,9 @@
 (ns grec.core
-  (:gen-class :main true)
-  (:require 
+  (:require
     [clojure.java.io :as io]
-    [clojure.xml :as xml]
-    )
-  (:use 
-    [colorize.core]
-    [clojure.contrib.command-line]
-    )
-  (:import 
-    [java.net URLEncoder]
-    )
-  )
+    [colorize.core :refer :all]
+    [clojure.tools.cli :refer [cli]])
+  (:gen-class))
 
 (defn pad-regex [regex] (re-pattern (str "(.*)(" regex ")(.*)")))
 
@@ -29,20 +21,21 @@
 (defn file-colorize
   [filename regex-red regex-green]
   (with-open [rd (io/reader filename)]
-    (doseq [line (line-seq rd)] 
+    (doseq [line (line-seq rd)]
       (println
         (add-color-by-regex (add-color-by-regex line regex-green "green") regex-red "red")
         ))))
 
 
-(defn -main [& args]
-  (with-command-line args
-                     "Usage: grec --[color] [regex] [file]"
-                     [ [red "colorize red"]
-                      [green "colorize green"]
-                      [blue "colorize blue"]
-                      extras ]
-                     (for [file extras] 
-                         (file-colorize file red green)
-                       )))
-
+(defn -main
+  [& args]
+  (let [[options args banner]
+           (cli args
+             ["--red"] ["--green"] ["--blue"]
+             ["-h" "--help" "Show help" :default false :flag true])
+        {:keys [red green blue]} options]
+    (when (:help options)
+      (println banner)
+      (System/exit 0))
+    (doseq [file args]
+      (file-colorize file red green))))
